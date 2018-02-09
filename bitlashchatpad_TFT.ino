@@ -28,7 +28,7 @@
    This application uses a Xbox Chatpad as an input keyboard.
    The aim of this is to have a small portable device.
 
-  11/2017 added support of an OPEN-SMART-breakout board for a 3.0" ILLI9326 TFT screen
+  11/2017 added support of an OPENSMART-breakout board for a 3.0" ILLI9326 TFT screen
 
 ***/
 #if defined(ARDUINO) && ARDUINO >= 100
