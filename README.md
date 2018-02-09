@@ -16,7 +16,7 @@ I would like to use this platform as an engineering assistant tool when doing el
 
 #### The screen
 It is a TFT screen from OPENSMART with an ILI9326 driver chip.
-Library is here https://github.com/fdufnews/OPENSMART_TFT
+Library for the screen is on [my GitHub](https://github.com/fdufnews/OPENSMART_TFT)
 
 #### The keyboard
 The chatpad is reprogrammed with the firmware from the OpenKeyboard Project. I have no link to this project as they are all dead links.
@@ -24,24 +24,24 @@ The chatpad is reprogrammed with the firmware from the OpenKeyboard Project. I h
 #### The software
 The application is based on [Bitlash by Bill Roy](https://github.com/billroy/bitlash/issues).
  Bitlash is a scripting language with an easy to learn syntax.
-I have made some modifications to Bill Roy work in order to make the best use of the ATmega 1284p
+I have made some modifications to Bill Roy work in order to make the best use of the ATmega 1284p. The libray is on [my GitHub](https://github.com/fdufnews/bitlash)
 
 #### Todo list
 ##### General
-- [*] Adding schematic
-- [*] Loading modified Arduino library for the screen on Github
-- [*] Loading modified Arduino Bitlash library on Github
+- [x] Adding schematic
+- [x] Loading modified Arduino library for the screen on Github
+- [x] Loading modified Arduino Bitlash library on Github
 - [ ] Loading a copy of the OpenKeyboard Project on Github
 
 ##### Application
-- [*] Adding chatpad input to Bitlash
-- [*] Adding TFT support to Bitlash 
+- [x] Adding chatpad input to Bitlash
+- [x] Adding TFT support to Bitlash (see note))
 - [ ] EEPROM cleaner. Utility to compact EEPROM content when there are too many holes in the file system
 - [ ] Support for SPI in Bitlash
 - [ ] Support for I²C in Bitlash
 - [ ] jointly with the development of SPI and I²C, adding support for an array in order to transfert pack of data to the peripheral
 
-Concerning the screen, a scroll is very time consuming as the hardware support is only possible
+Note: Concerning the screen, a scroll is very time consuming as the hardware support is only possible
  in portrait mode. So it was decided to make a rollover instead of a scroll. When bottom of screen
  is reached the cursor returns to top of screen. To highlight the cursor position the line following
  the cursor is deleted too.
