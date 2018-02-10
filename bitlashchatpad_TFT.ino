@@ -28,7 +28,12 @@
    This application uses a Xbox Chatpad as an input keyboard.
    The aim of this is to have a small portable device.
 
-  11/2017 added support of an OPENSMART-breakout board for a 3.0" ILLI9326 TFT screen
+  11/2017 fdufnews added support of an OPENSMART-breakout board for a 3.0" ILLI9326 TFT screen
+
+  02/2018 fdufnews 
+          added support of special chars (backspace, bell, newline)
+          added blinking cursor, line wrapping management and font scale
+          added user function textsize, cls
 
 ***/
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -48,33 +53,36 @@
 #include "define.h"          // define some constants related to the screen
 
 MCUFRIEND_kbv tft;           // instance of a screen object
-
+uint8_t textSize=1;          // text scale factor for TFT screen 
 
 ////////////////////////////////////////
 //
-//	Declare functions associated to Chatpad
-//
+//	Declare function(s) associated to Chatpad
 //
 ////////////////////////////////////////
 
 /* function called to read chatpad
- *  manage a blinking cursor
- *  if any char send it to doCharacter (interpreter input)
+ * manage a blinking cursor
+ * if any char is read, send it to doCharacter (interpreter input)
+ * 
+ * This function shall be called as frequently as possible so:
+ *     the cursor blinks at constant period
+ *     there is no latency in keyboard reading
 */
 
-#define BLINK_PERIOD 500
 void getKey(void) {
   int x = tft.getCursorX();             //get cursor position
   int y = tft.getCursorY();
   static boolean state=false;           // save current state of cursor
-  static unsigned long lastBlink=0;            // save time we change state of cursor
-  if (millis()-lastBlink>BLINK_PERIOD){ // time ellapsed
+  static unsigned long lastBlink=0;     // save time we change state of cursor
+  // blinking cursor
+  if (millis()-lastBlink>CURSOR_BLINK_PERIOD){ // time ellapsed
     state=!state;                       // change state
     lastBlink=millis();                 // save time the state changed
     if (state){                         // based on current state draw an underscore or a space
       tft.write('_');
     }else{
-      tft.fillRect(x, y, 6, 8, BLACK);  // draw a space at current cursor position
+      tft.fillRect(x, y, FONT_SIZE_X*textSize, FONT_SIZE_Y*textSize, BLACK);  // draw a space at current cursor position
     }
     tft.setCursor(x, y);                // set cursor position back to its current position
   }
@@ -82,7 +90,7 @@ void getKey(void) {
     char a = Serial1.read();
     if (a != 0) {
       lastBlink=millis();               // reset blink time
-      tft.fillRect(x, y, 6, 8, BLACK);  // put a space to erase the underscore if present
+      tft.fillRect(x, y, FONT_SIZE_X*textSize, FONT_SIZE_Y*textSize, BLACK);  // put a space to erase the underscore if present
       doCharacter(a);                   // Send character to interpreter
     }
   }
@@ -90,14 +98,15 @@ void getKey(void) {
 
 ////////////////////////////////////////
 //
-//  Declare functions associated to TFT
-//
+//  Declare function(s) associated to TFT
 //
 ////////////////////////////////////////
 
 /*
-    Handler to redirect output interface
-    Here we manage printing on the TFT
+ *  Handler to redirect output interface
+ *  Here we manage printing on the TFT
+ *
+ * This function is not directly called by the application but by bitlash printing engine
 */
 void TFTHandler(byte b) {
   /*  Prints incoming characters on the TFT screen
@@ -112,7 +121,7 @@ void TFTHandler(byte b) {
   */
   int x = tft.getCursorX();
   int y = tft.getCursorY();
-  char newline = x >= (tft.width() - 8);
+  char newline = x >= (tft.width() - FONT_SIZE_X*textSize);
   if (b == 7){
     unsigned int reg= tft.readReg(0x401);
     for (char i=0;i<8;i++){
@@ -120,13 +129,13 @@ void TFTHandler(byte b) {
       delay(250);
     }
   } else if(b == 8) {
-    tft.fillRect(x - 6, y, 6, 8, BLACK); // erase char
-    tft.setCursor(x - 6, y); // put cursor back one place
+    tft.fillRect(x - FONT_SIZE_X*textSize, y, FONT_SIZE_X*textSize, FONT_SIZE_Y*textSize, BLACK); // erase char
+    tft.setCursor(x - FONT_SIZE_X*textSize, y); // put cursor back one place
   } else if (b == 0x0a || newline) {
-    if (y >= (tft.height() - 8)) {
+    if (y >= (tft.height() - FONT_SIZE_Y*textSize)) {
       y = 0;
     } else {
-      y += 8;
+      y += FONT_SIZE_Y*textSize;
     }
     tft.fillRect(0, y, tft.width(), 16, BLACK); // erase line
     tft.setCursor(0, y); // put cursor at beginning of new line
@@ -138,10 +147,10 @@ void TFTHandler(byte b) {
   }
 }
 
-
 /*
-   Splashscreen
-   Print Bitlash with version and release numbers on a blue background
+ *  splashscreen
+ * 
+ *  Print Bitlash with version and release numbers on a blue background
 */
 void splashscreen(void) {
   tft.fillScreen(LBLUE);
@@ -155,13 +164,41 @@ void splashscreen(void) {
   delay(3000);
 }
 
+////////////////////////////////////////
+//
+//  Declare user function(s)
+//
+////////////////////////////////////////
+
+// funcTextSize
+// use given argument to set text scale
+// if no argument given return current scale
+//
+numvar funcTextSize(void){
+  if (getarg(0)>0){
+      textSize = getarg(1);
+      tft.setTextSize(textSize);
+  }
+  return(textSize);
+  }
+
+// funcCls
+// Clear screen
+//
+numvar funcCls(void){
+  tft.fillScreen(BLACK);
+  tft.setCursor(0,0);
+}
+
 /*
-    setup
-   init Serial1 to handle chatpad
-   init TFT screen
-   init bitlash
-   Call splashscreen
-   clear screen
+ *  setup
+*
+ *  init Serial1 to handle chatpad
+ *  add hook to display manager
+ *  init TFT screen
+ *  init bitlash
+ *  display splashscreen
+ *  display banner
 */
 void setup(void) {
   uint16_t g_identifier;       // screen ID
@@ -173,7 +210,9 @@ void setup(void) {
   
   setOutputHandler(&TFTHandler); // hook for TFT screen handler
   initBitlash(57600);
-
+  
+  addBitlashFunction("textsize", (bitlash_function)funcTextSize);
+  addBitlashFunction("cls", (bitlash_function)funcCls);
   tft.setRotation(3);
   splashscreen();
   tft.fillScreen(BLACK);

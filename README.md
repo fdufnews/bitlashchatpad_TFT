@@ -24,7 +24,7 @@ The chatpad is reprogrammed with the firmware from the OpenKeyboard Project. I h
 #### The software
 The application is based on [Bitlash by Bill Roy](https://github.com/billroy/bitlash/issues).
  Bitlash is a scripting language with an easy to learn syntax.
-I have made some modifications to Bill Roy work in order to make the best use of the ATmega 1284p. The libray is on [my GitHub](https://github.com/fdufnews/bitlash)
+I have made some modifications to Bill Roy work in order to make the best use of the ATmega 1284p. The library is on [my GitHub](https://github.com/fdufnews/bitlash)
 
 #### Todo list
 ##### General

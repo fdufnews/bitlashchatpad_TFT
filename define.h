@@ -16,4 +16,10 @@
 #define LYELLOW  0x7BE0
 #define LWHITE   0x7BEF
 
+// Font size
+// We use default font so size is constant
+#define FONT_SIZE_X 6
+#define FONT_SIZE_Y 8
 
+// HMI defines
+#define CURSOR_BLINK_PERIOD 500
