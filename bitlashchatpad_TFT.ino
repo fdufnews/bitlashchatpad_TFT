@@ -188,6 +188,7 @@ numvar funcTextSize(void){
 numvar funcCls(void){
   tft.fillScreen(BLACK);
   tft.setCursor(0,0);
+  return(0);
 }
 
 /*
