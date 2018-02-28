@@ -33,7 +33,7 @@
   02/2018 fdufnews 
           added support of special chars (backspace, bell, newline)
           added blinking cursor, line wrapping management and font scale
-          added user function textsize, cls
+          added user function textsize, cls, textcolor
 
 ***/
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -53,7 +53,8 @@
 #include "define.h"          // define some constants related to the screen
 
 MCUFRIEND_kbv tft;           // instance of a screen object
-uint8_t textSize=1;          // text scale factor for TFT screen 
+uint8_t textSize=1;          // text scale factor for TFT screen
+uint16_t red=255,green=255,blue=255;      // text color
 
 ////////////////////////////////////////
 //
@@ -114,10 +115,10 @@ void TFTHandler(byte b) {
    *  Before printing, see if any special char first
    * 
    * line wrapping : before printing, test if cursor x position is outside the screen. If so move to the next line
-   * bell      (0x07)    : blinks screen (normal, invert) 4 times
+   * bell      (0x07)    : silent bell, blinks screen (normal, invert) 4 times
    * backspace (0x08)    : move the cursor one character back, draw a space and return
    * newline   (0x0A)    : move the cursor to the next line and erase the line (and the following one).
-   *                       If cursor y position is outside the screen roll back to top
+   *                       If cursor y position is outside the screen rolls back to top
   */
   int x = tft.getCursorX();
   int y = tft.getCursorY();
@@ -156,11 +157,11 @@ void splashscreen(void) {
   tft.fillScreen(LBLUE);
   tft.setTextSize(5);
   tft.setTextColor(LRED);
-  tft.setCursor(25, 75);
-  doCommand((char*)"printf(\"BITLASH V\");printf(\"%d\",version);printf(\".\");printf(\"%d\",release)");
+  tft.setCursor(20, 75);
+  doCommand((char*)"printf(\"BITLASH V%d.%d\",version,release)");
   tft.setTextColor(RED);
-  tft.setCursor(25, 78);
-  doCommand((char*)"printf(\"BITLASH V\");printf(\"%d\",version);printf(\".\");printf(\"%d\",release)");
+  tft.setCursor(23, 78);
+  doCommand((char*)"printf(\"BITLASH V%d.%d\",version,release)");
   delay(3000);
 }
 
@@ -172,7 +173,7 @@ void splashscreen(void) {
 
 // funcTextSize
 // use given argument to set text scale
-// if no argument given return current scale
+// if no given argument returns current scale
 //
 numvar funcTextSize(void){
   if (getarg(0)>0){
@@ -181,6 +182,27 @@ numvar funcTextSize(void){
   }
   return(textSize);
   }
+
+// funcTextcolor
+// use given arguments to set text color
+// if 1 argument, it is supposed to be a 16 bits value coding colors in 5-6-5 format
+// if 3 arguments, they are supposed to hold R-G-B on 3 8 bits value
+// in all other cases returns color actually used on a 16 bits word coding colors in 5-6-5 format
+//
+numvar funcTextcolor(void){
+  if (getarg(0)==1){            // extracts the 3 colors from the 16 bits word
+    red = (getarg(1) & 0xF800) >>8;
+    green = (getarg(1) & 0x7E0)>>3;
+    blue = (getarg(1) & 0x1F)<<3;
+    tft.setTextColor((uint16_t) getarg(1));
+  }else if (getarg(0)==3){      // updates the colors with the 3 arguments
+    red = (uint8_t) getarg(1);
+    green = (uint8_t) getarg(2);
+    blue = (uint8_t) getarg(3);
+    tft.setTextColor(((red & 0xF8)<<8) | ((green & 0xFC)<<3) | (blue >> 3));
+  }
+  return(((red & 0xF8)<<8) | ((green & 0xFC)<<3) | (blue >> 3)); // returns current color
+}
 
 // funcCls
 // Clear screen
@@ -198,6 +220,7 @@ numvar funcCls(void){
  *  add hook to display manager
  *  init TFT screen
  *  init bitlash
+ *  add user functions to bitlash dictionnary
  *  display splashscreen
  *  display banner
 */
@@ -214,6 +237,7 @@ void setup(void) {
   
   addBitlashFunction("textsize", (bitlash_function)funcTextSize);
   addBitlashFunction("cls", (bitlash_function)funcCls);
+  addBitlashFunction("textcolor", (bitlash_function)funcTextcolor);
   tft.setRotation(3);
   splashscreen();
   tft.fillScreen(BLACK);
@@ -225,8 +249,8 @@ void setup(void) {
 
 /*
    main loop
-   look for a key entry
-   runBitlash (background manager)
+   - poll chatpad
+   - call Bitlash background manager
 */
 void loop(void) {
 
